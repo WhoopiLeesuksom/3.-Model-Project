@@ -155,7 +155,16 @@ class GovernmentClass(ConsumerClass):
 
         """
 
-        pass
+        T = 0.0
+        tau1 = tau if 1 in goods else 0.0
+        tau2 = tau if 2 in goods else 0.0
+        tau3 = tau if 3 in goods else 0.0
+
+        self.set_taxes(T=T, tau1=tau1, tau2=tau2, tau3=tau3)
+        opt = self.solve(do_print=False)
+
+        R = self.tax_revenue(opt)
+        u = opt.u
 
         return R,u
 
@@ -172,7 +181,11 @@ class GovernmentClass(ConsumerClass):
 
         """
 
-        pass
+        self.set_taxes(T=T)
+        opt = self.solve(do_print=False)
+
+        R = self.tax_revenue(opt)
+        u = opt.u
 
         return R,u
 
@@ -201,7 +214,15 @@ class GovernmentClass(ConsumerClass):
 
         """
 
-        pass
+        tau_grid = np.linspace(0.0, tau_max, N)
+        revenue_grid = np.empty(N)
+
+        for i, tau in enumerate(tau_grid):
+            revenue_grid[i] = self.revenue_and_utility(tau, goods)[0]
+
+        idx = np.argmax(revenue_grid)
+        tau = tau_grid[idx]
+        R = revenue_grid[idx]
 
         return tau,R
 
@@ -227,14 +248,19 @@ class GovernmentClass(ConsumerClass):
 
         """
 
-        pass
+        def f(tau):
+            R, _ = self.revenue_and_utility(tau, goods)
+            return R - R_target
+
+        try:
+            res = optimize.root_scalar(
+                f,
+                bracket=bracket,
+                method='brentq'
+            )
+            tau = res.root
+        except ValueError:
+            tau = np.nan
     
 
         return tau
-
-# HER, helt nederst i filen:
-if __name__ == '__main__':
-    gov = GovernmentClass()
-    gov.set_taxes(T=2, tau1=0.1, tau2=0.2, tau3=0.3)
-    R = gov.tax_revenue()
-    print("Revenue =", R)
