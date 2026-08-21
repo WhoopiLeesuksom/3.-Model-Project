@@ -133,7 +133,9 @@ class ConsumerClass:
 
         par = self.par
 
-        pass
+        xB = self.ces(x2, x3, par.beta, par.sigma_B)
+        
+        u = self.ces(x1, xB, par.alpha, par.sigma_A)
 
         return u
 
@@ -191,7 +193,8 @@ class ConsumerClass:
 
         """
 
-        pass
+        x1, x2, x3 = self.quantities(s1, w)
+        u = self.utility(x1, x2, x3)
 
         return u
 
@@ -237,17 +240,36 @@ class ConsumerClass:
         opt = SimpleNamespace()
 
         # a. the two grids
-        pass
+        s1_vec = np.linspace(0, 1, N)
+        w_vec = np.linspace(0, 1, N)
+
+        opt.s1_grid, opt.w_grid = np.meshgrid(
+            s1_vec, w_vec, indexing='ij'
+         )
 
         # b. utility in every grid point
-        pass
+        opt.u_grid = self.value_of_choice(
+            opt.s1_grid,
+            opt.w_grid
+        )
 
         # c. the best point
-        pass
+        idx = np.unravel_index(
+           np.argmax(opt.u_grid),
+           opt.u_grid.shape
+        )
+
+        opt.s1 = opt.s1_grid[idx]
+        opt.w = opt.w_grid[idx]
+
+        opt.s2 = (1 - opt.s1) * opt.w
+        opt.s3 = (1 - opt.s1) * (1 - opt.w)
+
+        opt.u = opt.u_grid[idx]
 
         # d. results
-        # opt.s1, opt.w, opt.s2, opt.s3, opt.u
-        # opt.s1_grid, opt.w_grid, opt.u_grid (needed for the figures)
+        #opt.s1, opt.w, opt.s2, opt.s3, opt.u
+        #opt.s1_grid, opt.w_grid, opt.u_grid (needed for the figures)
 
         return opt
 
@@ -279,9 +301,23 @@ class ConsumerClass:
         path = [s0.copy()]
 
         # c. minimize
-        pass
+        res = optimize.minimize(
+           self.objective,
+           s0,
+           method='L-BFGS-B',
+           bounds=((0,1),(0,1)),
+           callback=lambda sk: path.append(sk.copy()),
+           **kwargs
+        )
 
         # d. results
-        # opt.s1, opt.w, opt.s2, opt.s3, opt.u, opt.path, opt.res
+        opt.s1 = res.x[0]
+        opt.w = res.x[1]
+        opt.s2 = (1 - opt.s1) * opt.w
+        opt.s3 = (1 - opt.s1) * (1 - opt.w)
+        opt.u = -res.fun
+        opt.path = path
+        opt.res = res
 
         return opt
+
